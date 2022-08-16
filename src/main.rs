@@ -278,6 +278,11 @@ async fn main() -> Result<()> {
             "bitcoind rpc server url",
         ))
         .option(options::ConfigOption::new(
+            "broadcast-over-tor-bitcoin-rpcconnect",
+            options::Value::String(String::from("127.0.0.1")),
+            "bitcoind rpc server url",
+        ))
+        .option(options::ConfigOption::new(
             "bitcoin-rpcuser",
             options::Value::String(String::from("user")),
             "bitcoind rpc server user",
@@ -309,6 +314,11 @@ async fn main() -> Result<()> {
         None => 8332,
         Some(o) => return Err(anyhow!("bitcoin-rpcport is not a valid integer: {:?}", o)),
     };
+    let rpc_host = match plugin.option("bitcoin-rpcconnect") {
+        Some(options::Value::String(s)) => s,
+        None => String::from("127.0.0.1"),
+        Some(o) => return Err(anyhow!("bitcoin-rpcconnect is not a valid string: {:?}", o)),
+    };
     let rpc_user = match plugin.option("bitcoin-rpcuser") {
         Some(options::Value::String(s)) => s,
         None => String::from("user"),
@@ -325,7 +335,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    let client = connect_rpc(data_dir, rpc_port, rpc_user, rpc_password).await?;
+    let client = connect_rpc(data_dir, rpc_host, rpc_port, rpc_user, rpc_password).await?;
     state_clone.lock().unwrap().rpc_client = Some(Arc::new(client));
 
     let plugin = plugin.start().await?;
@@ -335,6 +345,7 @@ async fn main() -> Result<()> {
 
 async fn connect_rpc(
     data_dir: String,
+    rpc_host: String,
     rpc_port: i64,
     rpc_user: String,
     rpc_password: String,
@@ -342,7 +353,7 @@ async fn connect_rpc(
     loop {
         let path = PathBuf::from(&data_dir).join(".cookie");
         let auth = Auth::CookieFile(path);
-        let rpc_url = format!("127.0.0.1:{}", rpc_port);
+        let rpc_url = format!("{}:{}", rpc_host, rpc_port);
         let result = Client::new(&rpc_url, auth);
         let client = match result {
             Ok(client) => client,

@@ -1,6 +1,8 @@
 [package]
 name = "rust-bcli"
 version = "0.1.0"
+authors = ["Andrew Toth <andrewstoth@gmail.com>"]
+license = "MIT"
 edition = "2021"
 
 [features]
